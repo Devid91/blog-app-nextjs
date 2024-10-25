@@ -1,0 +1,79 @@
+services:
+  # Development MongoDB service
+  mongo-dev:
+    image: mongo:8.0.1
+    container_name: mongo-dev
+    ports:
+      - "27017:27017"
+    env_file: .env.local # Load variables from .env.local for the dev service
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root # Use plain value
+      - MONGO_INITDB_ROOT_PASSWORD=example # Use plain value
+    volumes:
+      - mongo-dev-data:/data/db
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    networks:
+      - dev-network
+
+  # Production MongoDB service
+  mongo-prod:
+    image: mongo:8.0.1
+    container_name: mongo-prod
+    ports:
+      - "27018:27017" # Expose a different port for production MongoDB
+    env_file: .env # Load variables from .env for the production service
+    environment:
+      - MONGO_PROD_USERNAME=root # Use plain value
+      - MONGO_PROD_PASSWORD=example # Use plain value
+    volumes:
+      - mongo-prod-data:/data/db
+    restart: unless-stopped
+    networks:
+      - prod-network
+
+  # Development client
+  client-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
+    env_file:
+      - .env.local # Load environment variables for dev client
+    depends_on:
+      - mongo-dev
+    networks:
+      - dev-network
+
+  # Production client
+  client-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env # Load environment variables for production client
+    depends_on:
+      - mongo-prod
+    networks:
+      - prod-network
+
+volumes:
+  mongo-dev-data:
+    driver: local
+  mongo-prod-data:
+    driver: local
+
+networks:
+  dev-network:
+    driver: bridge
+  prod-network:
+    driver: bridge
