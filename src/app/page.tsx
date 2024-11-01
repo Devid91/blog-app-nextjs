@@ -1,123 +1,99 @@
 "use client";
 
-import { useState } from "react";
-import axios from "axios";
-
 import {
   signIn,
-  signOut,
+  signOut as NextAuthSignOut,
   useSession,
-  signOut as nextAuthSignOut,
+  signOut,
 } from "next-auth/react";
-import checkUserNameInDB from "@/actions/checkUserNameInDB";
+import { useState } from "react";
+import updateUserName from "@/actions/updateUserName";
 
 export default function Home() {
-  const [isSaving, setIsSaving] = useState(false);
-  const [userName, setUserName] = useState(""); // Use state to store the input value
-  const { status } = useSession();
+  const { data: session, status, update } = useSession();
+  const [userName, setUserName] = useState("");
 
-  const handleDeleteClick = async () => {
-    try {
-      const response = await axios.post(
-        "http://localhost:3000/api/delete-data"
-      );
-      console.log("Data deleted successfully:", response.data.message);
-    } catch (error) {
-      console.error("Error deleting data:", error);
-    }
-  };
+  const handleUpdateUserName = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const setCookie = async (username: string) => {
-    try {
-      await axios.post(
-        "http://localhost:3000/api/cookie", // Use relative URL for better portability
-        { username },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
+    // Ensure session data is present
+    if (session?.user?.email) {
+      try {
+        // Call the API to update the username in the database
+        const result = await updateUserName(session.user.email, userName);
+
+        // Check if result contains the updated username
+        if (result && result.username) {
+          // Wrap session update in an anonymous function
+          (async () => {
+            console.log("Attempting to update session...");
+            try {
+              await update({
+                ...session,
+                user: {
+                  ...session.user,
+                  username: result.username, // Use the actual updated username
+                },
+              });
+              console.log("Session updated successfully.");
+            } catch (updateError) {
+              console.error("Error updating session:", updateError);
+            }
+          })();
+
+          // Clear the input field after update
+          setUserName("");
+        } else {
+          console.error(
+            "Username update failed: No username returned in result."
+          );
         }
-      );
-      console.log("Cookie set successfully");
-    } catch (error) {
-      console.error("Error setting cookie", error);
-      throw new Error("Failed to set cookie");
+      } catch (error) {
+        console.error("Error updating userName:", error);
+      }
     }
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    setIsSaving(true);
-
-    await setCookie(userName);
-
-    const userNameResult = await checkUserNameInDB(userName);
-
-    if (userNameResult) {
-      console.log(`userName already exist in DB: ${userName}`);
-      setIsSaving(false);
-      return;
-    }
-
-    setTimeout(() => {
-      setIsSaving(false);
-      signIn("google");
-    }, 250);
-  };
-
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const username = event.target.value;
-    setUserName(username);
-  };
-
-  // Show loading state
+  // Check session status
   if (status === "loading") {
-    return <p>Loading...</p>;
+    return <p>Loading...</p>; // Show loading message while session is loading
   }
 
-  // User is authenticated (signed in)
-  if (status === "authenticated") {
+  if (status === "authenticated" && session?.user?.email) {
     return (
-      <div>
-        <p>You are signed in!</p>
-        <button
-          type="submit"
-          onClick={async () => {
-            // Sign out without redirection
-            await signOut();
-            await nextAuthSignOut({ redirect: false });
-          }}
-        >
-          Sign Out
-        </button>
-      </div>
+      <>
+        <div>
+          <p>You are signed in as {session.user.name}!</p>
+          <button
+            type="button"
+            onClick={async () => {
+              // Sign out without redirection
+              await signOut();
+              await NextAuthSignOut();
+            }}
+          >
+            Sign Out
+          </button>
+        </div>
+        <div>
+          <h1>Update userName</h1>
+          <form onSubmit={handleUpdateUserName}>
+            <input
+              type="text"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              placeholder="Enter new userName"
+            />
+            <button type="submit">Update userName</button>
+          </form>
+        </div>
+      </>
     );
   }
 
-  // User is not signed in
   return (
-    <>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="username">Username: </label>
-          <input
-            type="text"
-            id="username"
-            name="username" // The form name should reflect the input purpose
-            onChange={handleChange} // Handle changes using state updater
-            value={userName} // Bind input value to state
-            required
-          />
-        </div>
-        <button type="submit" disabled={isSaving}>
-          {isSaving ? "Saving..." : "Sign In With Google"}
-        </button>
-      </form>
-
-      <button type="submit" onClick={handleDeleteClick}>
-        Delete data from memory
-      </button>
-    </>
+    <button type="submit" onClick={() => signIn("google")}>
+      Sign Up with Google
+    </button>
   );
 }

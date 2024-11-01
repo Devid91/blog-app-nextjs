@@ -7,8 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "watch-db": "node src/scripts/watchDB.js"
+    "lint": "next lint"
   },
   "dependencies": {
     "@next-auth/mongodb-adapter": "^1.1.3",

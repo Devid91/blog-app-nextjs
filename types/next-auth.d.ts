@@ -1,15 +1,11 @@
-import { DefaultSession, DefaultUser } from "next-auth";
-
-// Extend the DefaultUser interface
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id?: string; // Assuming you're storing user ID
-      emailVerified?: boolean; // Add the emailVerified field
-    } & DefaultSession["user"]; // Include existing user properties
-  }
-
-  interface User extends DefaultUser {
-    emailVerified?: boolean; // Add the emailVerified field to User
+// Extend the User type
+declare module "next-auth/adapters" {
+  interface AdapterUser {
+    email: string;
+    name: string;
+    avatar?: string | null;
+    username?: string | null; // Add the username property
+    createdAt?: Date; // Optional createdAt field
+    updatedAt?: Date; // Optional updatedAt field
   }
 }

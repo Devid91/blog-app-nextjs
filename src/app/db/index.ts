@@ -1,37 +1,41 @@
 "use server";
 
 import "server-only";
+import mongoose, { Mongoose } from "mongoose";
 
-// import { Mongoose } from "mongoose";
+// Define a global mongoose instance for re-use
+declare global {
+  // eslint-disable-next-line no-var, @typescript-eslint/no-explicit-any
+  var mongooseInstance: Mongoose | undefined;
+}
 
-// declare global {
-//   // eslint-disable-next-line no-var, @typescript-eslint/no-explicit-any
-//   var mongoose: Mongoose | undefined; // This must be a `var` and not a `let / const`
-// }
+// Ensure MONGODB_URL is a string by confirming it's defined
+const MONGODB_URL = process.env.MONGODB_URL as string;
 
-// const MONGODB_URL = process.env.MONGODB_URL;
+if (!MONGODB_URL) {
+  throw new Error(
+    "Please define the MONGODB_URL environment variable in your .env file."
+  );
+}
 
-// if (!MONGODB_URL) {
-//   throw new Error(
-//     "Please define the MONGODB_URI environment variable inside .env.local"
-//   );
-// }
+export default async function connectToDatabase() {
+  // Check if mongooseInstance is already defined globally
+  if (
+    global.mongooseInstance &&
+    global.mongooseInstance.connection.readyState === 1
+  ) {
+    console.log("Using existing database connection");
+    return global.mongooseInstance;
+  }
 
-// export default async function connectToDatabase() {
-//   if (mongoose.connection.readyState === 1) {
-//     // If already connected, use existing connection
-//     console.log("Using existing database connection");
-//     return mongoose.connection;
-//   }
+  try {
+    // Initialize the mongoose connection if not already done
+    global.mongooseInstance = await mongoose.connect(MONGODB_URL);
+    console.log("Connected to MongoDB");
 
-//   try {
-//     await mongoose.connect(MONGODB_URL as string, {
-//       serverSelectionTimeoutMS: 5000,
-//       // ensure you're connecting with the right auth DB
-//     });
-//     console.log("Connected to DB");
-//   } catch (error) {
-//     console.error("Error connecting to the database:", error);
-//     throw error;
-//   }
-// }
+    return global.mongooseInstance;
+  } catch (error) {
+    console.error("Error connecting to the database:", error);
+    throw error;
+  }
+}

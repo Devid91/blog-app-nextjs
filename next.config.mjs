@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-  output: "standalone",
+  // output: "standalone",
   //enabled Hot Reload in Docker
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   webpack: (config, _) => ({

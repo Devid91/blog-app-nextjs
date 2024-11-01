@@ -1,43 +1,20 @@
-// "use server";
+import mongoose, { Document, Model, Schema } from "mongoose";
 
-// import mongoose, { Schema } from "mongoose";
+// Define an interface for the User document
+interface IUser extends Document {
+  email: string;
+  name: string;
+  username: string | null;
+  avatar?: string;
+}
 
-// const userSchema = new Schema(
-//   {
-//     name: {
-//       type: String,
-//       required: true,
-//     },
-//     email: {
-//       type: String,
-//       required: true,
-//       unique: true,
-//     },
-//     username: {
-//       type: String,
-//       require: true,
-//       unique: true,
-//     },
-//   },
-//   {
-//     timestamps: true,
-//   }
-// );
-
-// const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
-
-// export default UserModel;
-
-// /models/User.js
-
-import mongoose from "mongoose";
-
-const userSchema = new mongoose.Schema(
+// Define User Schema
+const userSchema = new Schema<IUser>(
   {
     email: {
       type: String,
       required: true,
-      unique: true,
+      unique: true, // MongoDB and Mongoose will enforce unique constraint
     },
     name: {
       type: String,
@@ -45,7 +22,21 @@ const userSchema = new mongoose.Schema(
     },
     username: {
       type: String,
-      unique: true,
+      default: null,
+      validate: {
+        // Custom validator to allow multiple null values, but enforce uniqueness if username is not null
+        validator: async function (value: string | null) {
+          if (!value) return true; // Allows multiple `null` or empty values
+
+          // If username is not null, check for uniqueness
+          const count = await UserModel.countDocuments({ username: value });
+          return count === 0;
+        },
+        message: "Username already exists.",
+      },
+    },
+    avatar: {
+      type: String,
     },
   },
   {
@@ -53,6 +44,8 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
+// Create the User Model
+const UserModel: Model<IUser> =
+  mongoose.models.User || mongoose.model<IUser>("User", userSchema);
 
 export default UserModel;

@@ -2,7 +2,6 @@
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
-
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
@@ -26,12 +25,12 @@
   },
   "include": [
     "next-env.d.ts",
+    "next-auth.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
     "src/**/*.d.ts",
-    "src/scripts/watchDB.js",
-    "src/app/utils/memory-db.js"
+    "types/**/*.d.ts"
   ],
   "exclude": ["node_modules"]
 }

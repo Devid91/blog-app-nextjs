@@ -1,28 +1,23 @@
-// actions/createNewUserInDB.js
 "use server";
 
-import UserModel from "@/lib/mongoose/scheemas/user";
-
-export default async function createNewUserInDB(
-  email: string,
-  name: string,
-  username: string | null
-) {
+import axios from "axios";
+const createUser = async (name: string, email: string) => {
+  // TODO >> hide with in an .env variable
   try {
-    // Create a new user document
-    const newUser = new UserModel({
-      email,
-      name,
-      username,
-    });
-
-    // Save the user to the database
-    const savedUser = await newUser.save();
-
-    // Return the saved user data (omit sensitive info if needed)
-    return savedUser;
+    const apiResponse = await axios.post(
+      "http://localhost:3000/api/user",
+      { name, email },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return apiResponse;
   } catch (error) {
-    console.error("Error creating user:", error);
-    return null; // Handle errors gracefully
+    console.error("Error in createUser:", error);
+    throw error;
   }
-}
+};
+
+export default createUser;
