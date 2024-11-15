@@ -17,6 +17,10 @@ const nextConfig = {
       fullUrl: true,
     },
   },
+
+  experimental: {
+    turbo: {},
+  },
 };
 
 export default nextConfig;

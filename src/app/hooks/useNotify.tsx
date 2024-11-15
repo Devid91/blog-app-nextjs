@@ -9,7 +9,7 @@ import styles from "../hooks/styles/notificationanimation.module.css";
 const useNotify = () => {
   const notify = (message: string, success: boolean) => {
     toast.custom(
-      (t) => (
+      (t: { visible: any }) => (
         <div
           className={twMerge(
             `text-[#171717] ${success ? "bg-white" : "bg-red-200"} flex items-center rounded px-8 py-4 shadow-md text-center`,

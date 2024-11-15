@@ -111,7 +111,10 @@ export default function HeaderMobileScreen() {
                 animate="open"
                 exit="closed"
                 variants={sidebarVariants}
-                className="fixed left-0 top-0 h-full w-64 bg-primary-color text-white shadow-lg z-[80] p-5 overflow-auto hide-movable-scrollbar"
+                {...{
+                  className:
+                    "fixed left-0 top-0 h-full w-64 bg-primary-color text-white shadow-lg z-[80] p-5 overflow-auto hide-movable-scrollbar",
+                }}
               >
                 <div>
                   {getLinks()}

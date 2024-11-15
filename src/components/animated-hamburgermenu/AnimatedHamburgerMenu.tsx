@@ -1,11 +1,14 @@
 "use client";
 
-import { motion, MotionConfig } from "framer-motion";
+import { motion, MotionConfig, MotionProps } from "framer-motion";
 
 type AnimatedHamburgerButtonProps = {
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 };
+
+type MotionButtonProps = MotionProps &
+  React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export default function AnimatedHamburgerButton({
   isOpen,
@@ -23,6 +26,7 @@ export default function AnimatedHamburgerButton({
         onClick={() => setIsOpen((prev) => !prev)}
         className="relative h-20 w-20 rounded-full bg-white/0  transition-colors hover:bg-white/20 z-[80]"
         animate={isOpen ? "open" : "closed"}
+        {...({} as MotionButtonProps)}
       >
         <motion.span
           style={{
@@ -31,7 +35,7 @@ export default function AnimatedHamburgerButton({
             x: "-50%",
             y: "-50%",
           }}
-          className="absolute h-1 w-10 bg-white"
+          {...{ className: "absolute h-1 w-10 bg-white" }}
           variants={{
             open: {
               rotate: ["0deg", "0deg", "45deg"],
@@ -50,7 +54,7 @@ export default function AnimatedHamburgerButton({
             x: "-50%",
             y: "-50%",
           }}
-          className="absolute h-1 w-10 bg-white"
+          {...{ className: "absolute h-1 w-10 bg-white" }}
           variants={{
             open: {
               rotate: ["0deg", "0deg", "-45deg"],
@@ -67,7 +71,7 @@ export default function AnimatedHamburgerButton({
             x: "-50%",
             y: "50%",
           }}
-          className="absolute h-1 w-5 bg-white"
+          {...{ className: "absolute h-1 w-5 bg-white" }}
           variants={{
             open: {
               rotate: ["0deg", "0deg", "45deg"],

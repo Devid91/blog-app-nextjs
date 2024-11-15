@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 export default function useUserReadThrough<T extends HTMLElement>(
   showModal: boolean,
-  contentRef: React.RefObject<T>,
+  contentRef: React.RefObject<T | null>,
   setIsReadAllConditions: React.Dispatch<React.SetStateAction<boolean>>
 ) {
   useEffect(() => {

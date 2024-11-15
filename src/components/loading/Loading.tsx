@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type JSX } from "react";
 import { twMerge } from "tailwind-merge";
 
 // Define the LoadingProps interface
