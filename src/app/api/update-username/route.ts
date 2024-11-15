@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import UserModel from "@/lib/mongoose/scheemas/user";
+import UserModel from "@/app/utils/lib/mongoose/scheemas/user";
 import connectToDatabase from "@/app/db";
 
 export async function POST(req: NextRequest) {
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     user.username = username;
-
+    console.log("User before saving:", user);
     await user.save();
 
     return NextResponse.json({

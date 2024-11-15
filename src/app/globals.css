@@ -1,3 +1,108 @@
-@import url("tailwindcss/base");
-@import url("tailwindcss/components");
-@import url("tailwindcss/utilities");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #0080ff;
+  --secondary-color: #ccb50a;
+  --primary-text-color: white;
+  --secondary-text-color: black;
+}
+
+input,
+textarea,
+select {
+  @apply text-black; /* Apply black text color globally to input, textarea, select */
+}
+
+@layer components {
+  .place-content-center-screen {
+    @apply flex items-center justify-center h-[86vh] w-full max-sm:h-[84vh];
+  }
+}
+
+html {
+  min-height: 100vh;
+  color: var(--primary-text-color);
+}
+
+body {
+  position: relative;
+  min-height: 100vh;
+  background-color: black;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url(public/images/bg-image.jpg) no-repeat center center fixed; /* Correct background image path */
+  background-size: cover;
+  opacity: 0.3;
+  z-index: -1;
+}
+
+.custom-style-for-input-label {
+  text-decoration: none !important;
+  cursor: initial;
+}
+
+.hide-movable-scrollbar::-webkit-scrollbar {
+  width: 0px;
+  background: transparent; /* make scrollbar transparent */
+}
+
+@keyframes custom-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes custom-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+.custom-enter {
+  animation: custom-enter 1s ease-in-out forwards;
+}
+
+.custom-exit {
+  animation: custom-exit 1s ease-in-out forwards;
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.3s ease;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+}

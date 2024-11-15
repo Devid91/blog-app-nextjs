@@ -1,0 +1,30 @@
+/* notificationanimation.module.css */
+.customEnter {
+  animation: customEnter 1s ease-in-out forwards;
+}
+
+.customExit {
+  animation: customExit 1s ease-in-out forwards;
+}
+
+@keyframes customEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes customExit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
