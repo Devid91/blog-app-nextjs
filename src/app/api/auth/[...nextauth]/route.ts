@@ -1,1 +1,4 @@
-export { GET, POST } from "../../../(auth)/auth";
+export {
+  GET,
+  /* @next-codemod-ignore */ POST /* @next-codemod-ignore */,
+} from "../../../(auth)/auth";
