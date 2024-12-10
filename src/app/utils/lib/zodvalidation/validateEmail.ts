@@ -1,9 +1,9 @@
-// utils/lib/validation/validateUsername.ts
-import { usernameSchema } from "@/app/utils/lib/zodscheemas/zodscheemas";
+// utils/lib/validation/validateEmail.ts
+import { emailSchema } from "@/app/utils/lib/zodscheemas/zodscheemas";
 import { fromZodError } from "zod-validation-error";
 
-export const validateUsername = (username: string) => {
-  const validation = usernameSchema.safeParse({ userName: username });
+export const validateEmail = (email: string) => {
+  const validation = emailSchema.safeParse({ email });
 
   if (!validation.success) {
     let errorMessage = fromZodError(validation.error).message;
@@ -20,5 +20,5 @@ export const validateUsername = (username: string) => {
   }
 
   // If validation was successful, return the sanitized data
-  return { success: true, data: validation.data.userName };
+  return { success: true, data: validation.data.email };
 };

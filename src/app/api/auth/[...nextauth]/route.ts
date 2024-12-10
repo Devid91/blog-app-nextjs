@@ -1,4 +1,1 @@
-export {
-  GET,
-  /* @next-codemod-ignore */ POST /* @next-codemod-ignore */,
-} from "../../../(auth)/auth";
+export { GET, POST } from "../../../utils/lib/nextauth/auth";

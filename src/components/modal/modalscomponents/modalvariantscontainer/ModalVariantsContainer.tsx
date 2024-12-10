@@ -11,6 +11,7 @@ import {
   useSession,
   signOut,
 } from "next-auth/react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function ModalVariantsContainer(props: ModalContainerProps) {
   const [showModal, setShowModal] = useState(false);
@@ -28,6 +29,18 @@ export default function ModalVariantsContainer(props: ModalContainerProps) {
 
   const handleClose = () => setShowModal(false);
   const handleOpen = () => setShowModal(true);
+
+  const queryClient = useQueryClient();
+
+  const clearReactQueryCache = async () => {
+    queryClient.clear();
+    localStorage.removeItem("REACT_QUERY_OFFLINE_CACHE");
+  };
+
+  const clearCacheAndClose = async () => {
+    await clearReactQueryCache();
+    handleClose();
+  };
 
   const renderContent = () => {
     switch (props.variant) {
@@ -90,7 +103,6 @@ export default function ModalVariantsContainer(props: ModalContainerProps) {
                   <ButtonAction
                     className="bg-primary-color text-secondary-color"
                     type="button"
-                    onClick={handleClose}
                   >
                     {props.buttonText}
                   </ButtonAction>
@@ -98,6 +110,7 @@ export default function ModalVariantsContainer(props: ModalContainerProps) {
                   <ButtonAction
                     className="mb-0 p-0 text-xs  w-[70%]"
                     onClick={async () => {
+                      await clearCacheAndClose();
                       await signOut();
                       await NextAuthSignOut();
                     }}

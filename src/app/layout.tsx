@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
-import { NextAuthProvider } from "@/providers/Providers";
+import { NextAuthProvider } from "@/providers/SessionProvider";
 import Footer from "@/components/footer/Footer";
 import Header from "@/components/Header/Header";
 import { Toaster } from "react-hot-toast";
+import ClientProvider from "@/providers/ClientProvider";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -32,11 +33,13 @@ export default function RootLayout({
         className={`${nunito} leading-8 tracking-widest antialiased text-primary-text-color`}
       >
         <NextAuthProvider>
-          <Header />
-          <main className="flex-grow flex-row  min-h-screen  pb-[5vh] sm:pb-[8vh]">
-            {children}
-          </main>
-          <Toaster position="bottom-left" reverseOrder={false} />
+          <ClientProvider>
+            <Header />
+            <main className="flex-grow flex-row  min-h-screen  pb-[5vh] sm:pb-[8vh]">
+              {children}
+            </main>
+            <Toaster position="bottom-left" reverseOrder={false} />
+          </ClientProvider>
         </NextAuthProvider>
         <Footer />
       </body>

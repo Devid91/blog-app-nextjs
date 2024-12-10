@@ -1,50 +1,50 @@
-import { NextRequest, NextResponse } from "next/server";
-import { decode } from "next-auth/jwt";
+import { NextFetchEvent, NextRequest, NextResponse } from "next/server";
+import {
+  getTokenFromRequest,
+  decodeToken,
+  getUsernameFromToken,
+} from "./server-utils/server-utils";
+import { arcJetMiddleware } from "./server-utils/server-utils";
 
-const secret = process.env.NEXTAUTH_SECRET as string;
+// TODO >> how to make a separate strings for production and development modes in NextJS
+// Define the matcher for ArcJet middleware
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"], // Apply ArcJet to all routes except static and image assets
+};
 
-export default async function middleware(request: NextRequest) {
-  const token = request.cookies.get("next-auth.session-token")?.value;
+// Define routes that require token validation
+const protectedRoutes = ["/write"];
 
-  // Redirect to home if token is missing and not on the home page
-  if (!token) {
-    console.log("Error getting token: ", token);
-    return NextResponse.redirect(new URL("/", request.url));
-  }
+export default async function middleware(
+  request: NextRequest,
+  event: NextFetchEvent
+) {
+  // Step 1: Process ArcJet middleware
+  // const arcJetResponse = await arcJetMiddleware(request, event);
 
-  try {
-    // Attempt to decode the token
-    const decodedToken = await decode({ token, secret });
-    if (!decodedToken) {
-      // Redirect to home if token decoding failed and not already on the home page
-      console.log("error decoding token and session: ", token, secret);
+  // // If ArcJet explicitly blocks or redirects, honor it
+  // if (arcJetResponse && arcJetResponse.status !== 200) {
+  //   return arcJetResponse; // If ArcJet returns a response (block or redirect), return it
+  // }
+
+  const pathname = request.nextUrl.pathname;
+
+  // Step 2: Check if the pathname matches any protected route
+  const isProtectedRoute = protectedRoutes.includes(pathname);
+
+  // If it's a protected route, perform token validation
+  if (isProtectedRoute) {
+    const token = getTokenFromRequest(request);
+
+    const decodedToken = token ? await decodeToken(token) : null;
+    const user = decodedToken ? getUsernameFromToken(decodedToken) : null;
+
+    if (!token || !decodedToken || !user) {
+      // Redirect to home if token validation fails
       return NextResponse.redirect(new URL("/", request.url));
     }
-
-    // Extract user info from the decoded token
-    const user = decodedToken?.username as string;
-
-    // Redirect to /set-username if user.username is missing and not already there or on home page
-    if (!user) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-  } catch (error) {
-    console.error("Error decoding token:", error);
-    // Redirect to home page on error
-    return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Proceed if everything is fine
+  // Step 3: Allow the request to proceed
   return NextResponse.next();
 }
-// TODO >> figure out conditional middleware , if token ,session exist and decoded and user has truthy value allow to the protected routes
-//Middleware configuration to match specific routes
-export const config = {
-  matcher: [
-    "/dashboard/:path*", // Protect all routes under /dashboard
-    "/profile/:path*", // Protect all routes under /profile // Protect a specific route
-    "/write",
-    "/login",
-    // Another specific route
-  ],
-};

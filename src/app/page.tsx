@@ -1,66 +1,145 @@
 "use client";
 
-import {
-  signIn,
-  signOut as NextAuthSignOut,
-  useSession,
-  signOut,
-} from "next-auth/react";
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
+import { useRef, useEffect, useCallback, useState, useTransition } from "react";
 import updateUserName from "@/actions/updateUserName";
-import pencil from "@/app/public/images/main-image.jpg";
-import golden_frame from "@/app/public/images/golden-frame.jpg";
-import ButtonAction from "@/components/buttonaction/ButtonAction";
-import Image from "next/image";
 import Loading from "@/components/loading/Loading";
 import { validateUsername } from "./utils/lib/zodvalidation/validateUsername";
 import useClickOutside from "./hooks/useClickOutside";
 import useNotify from "./hooks/useNotify";
+import useGlobalStore from "@/store/store";
+import HomeSignIn from "@/components/home/homesignin/HomeSignIn";
+import HomeSignOut from "@/components/home/homesignout/HomeSignOut";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import HomeMainLayer from "@/components/home/homemainlayer/HomeMainLayer";
 
 export default function Home() {
   const { data: session, status, update } = useSession();
-  const [userName, setUserName] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const userName = useGlobalStore((state) => state.userName); // input field state
+  const setUserName = useGlobalStore((state) => state.setUserName);
+  const setError = useGlobalStore((state) => state.setError); // if an error occur during typing or not valid input value
+
+  const authenticated = status === "authenticated";
+  const authLoading = status === "loading";
+  const sessionEmail = session?.user?.email ?? null;
+
+  const fetchConditions =
+    authenticated &&
+    sessionEmail &&
+    (session?.user?.username === null || session?.user?.username === undefined);
+
+  //notify the status of the user auth current state
   const { notify } = useNotify();
 
-  const notification = useCallback((): void => {
-    return session?.user?.username === null
-      ? notify("Please give a username to finish signing up", true)
-      : notify(`Welcome ${session?.user?.username}`, true);
-  }, [notify, session?.user?.username]);
-
+  //close error message
   useClickOutside(inputRef, () => setError(null));
 
+  /* set Loading "Loading..." screen to update session, username and the DB username values*
+loading... only seen be the initial loading time but not while username updated
+this is because the state from loading...to main layout happens double while updating and session.user,username is null
+soo the timeout set to 2 seconds to have time to update state, session and DB and not experience too uch layout shift
+*/
+  const setWaitBackGroundFetches = useGlobalStore(
+    (state) => state.setWaitBackGroundFetches
+  );
+  const waitBackGroundFetches = useGlobalStore(
+    (state) => state.waitBackGroundFetches
+  );
+
+  // Timeout tracking for minimum loading duration, otherwise the initially the session state keeps loading... forever
+  const timeoutComplete = useGlobalStore((state) => state.timeoutComplete);
+  const setTimeoutComplete = useGlobalStore(
+    (state) => state.setTimeoutComplete
+  );
+
+  // Fetch user data using React Query ,set the conditions when to fetch
+  const {
+    isLoading: isUserLoading,
+    data: queryUserData,
+    error: queryError,
+  } = useQuery({
+    queryKey: ["user", sessionEmail],
+    queryFn: async () => {
+      const response = await axios.post(
+        "http://localhost:3000/api/auth/get-user-by-email",
+        { email: sessionEmail }
+      );
+      return response.data.user;
+    },
+    enabled: Boolean(fetchConditions),
+  });
+
+  // Manage loading duration with a minimum of 2 seconds
   useEffect(() => {
-    if (status === "authenticated" && session?.user?.username === null) {
-      notification();
+    // Start timeout for 2 seconds
+    const timer = setTimeout(() => {
+      setTimeoutComplete(true);
+    }, 2000);
+
+    // Clear timeout on cleanup
+    return () => clearTimeout(timer);
+  }, []);
+
+  //let the state true to be able to fetch query by all conditions set to true
+
+  useEffect(() => {
+    if (authLoading || isUserLoading) {
+      setWaitBackGroundFetches(true);
+    } else {
+      const timer = setTimeout(() => {
+        setWaitBackGroundFetches(false);
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  }, [status, session?.user?.username, notification]);
+  }, [authLoading, isUserLoading]);
 
-  const handleUpdateUserName = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Effect to handle session update after user data is fetched
+  useEffect(() => {
+    if (
+      queryUserData?.username &&
+      queryUserData.username !== session?.user?.username
+    ) {
+      setWaitBackGroundFetches(true);
 
-    // First, validate the username
-    const validationResult = validateUsername(userName);
+      update({
+        ...session,
+        user: {
+          ...session?.user,
+          username: queryUserData.username,
+        },
+      });
 
-    if (!validationResult.success) {
-      // If validation fails, set the error message
-      setError(validationResult.error || null);
-      return; // Exit the function early, don't send the request
+      setWaitBackGroundFetches(false);
     }
+  }, [queryUserData, session, update]);
 
-    // If validation passes, reset error and proceed with update
-    setError(null);
+  const [, startTransition] = useTransition();
 
-    // Ensure session data is present
-    if (session?.user?.email) {
+  const handleUpdateUserName = useCallback(() => {
+    startTransition(async () => {
+      if (!session?.user?.email) return;
+
+      setWaitBackGroundFetches(true); // Indicate username update is in progress
+
+      const validationResult = validateUsername(userName);
+      if (!validationResult.success) {
+        setError(validationResult.error || null);
+        setWaitBackGroundFetches(false);
+        return;
+      }
+
       try {
-        // Call the API to update the username in the database
         const result = await updateUserName(session.user.email, userName);
 
-        if (result && result.username) {
-          // Update session with the new username
+        if (result?.error) {
+          // Display error returned from the backend
+          setError(result.error);
+          console.error("Username update failed:", result.error);
+        } else if (result?.username) {
+          // Successfully updated username
           await update({
             ...session,
             user: {
@@ -69,146 +148,57 @@ export default function Home() {
             },
           });
           setUserName("");
-          notification();
-          // Clear input after successful update
-        } else {
-          console.error(
-            "Username update failed: No username returned in result."
-          );
+          setError(null); // Clear any previous error
         }
       } catch (error) {
-        console.error("Error updating userName:", error);
+        console.error("Error updating username:", error);
+        setError("An unexpected error occurred while updating the username.");
+      } finally {
+        setWaitBackGroundFetches(false);
       }
+    });
+  }, [session, userName, setError, update, setUserName]);
+
+  useEffect(() => {
+    /*Only run the effect if session is authenticated and the username is still null
+   if timeout was not introduced then each signin is
+   always null before DB fetch */
+    if (authenticated && session?.user?.username === null) {
+      const timer = setTimeout(() => {
+        if (authenticated && session?.user?.username === null) {
+          // Notify after 2 seconds if the username is still null
+          notify(`Please give a username to finish signup`, false);
+        }
+      }, 2000); // 2-second delay
+
+      return () => clearTimeout(timer);
     }
-  };
+  }, [authenticated, session?.user?.username, notify]);
 
-  if (status === "loading") {
+  // Ensure loading... happens to set the setter true or session is updating
+  // && !timeoutComplete >> prevent the bug to double layout shift to deny it
+  if ((waitBackGroundFetches || authLoading) && !timeoutComplete) {
     return <Loading />;
-  }
-
-  if (status === "authenticated" && session?.user?.email) {
-    return (
-      <>
-        <main className="flex flex-col lg:flex-row mx-7 lg:min-h-[100vh] lg:space-x-8 space-y-8 lg:space-y-0 justify-center lg:justify-start mt-[25px] ">
-          <section className="relative flex-1 flex flex-col items-center lg:items-start text-center lg:text-left mt-[20px]">
-            <div className="text-base text-center sm:text-2xl mb-[25px] min-[1700px]:pl-12 text-white">
-              Welcome to your personal blog space! Log in now to unlock posts
-              and start sharing your thoughts.
-            </div>
-
-            <aside className="flex justify-center items-center w-full">
-              <ButtonAction
-                onClick={async () => {
-                  await signOut();
-                  await NextAuthSignOut();
-                }}
-              >
-                Sign Out
-              </ButtonAction>
-            </aside>
-
-            <div className="flex flex-row place-content-center w-full max-w-5xl mx-auto">
-              <form
-                className="flex justify-center flex-col"
-                onSubmit={handleUpdateUserName}
-              >
-                <div className="flex flex-col w-full">
-                  <label
-                    className="custom-style-for-input-label m-1 p-1 text-white flex justify-left justify-center"
-                    htmlFor="name"
-                  >
-                    Username:
-                  </label>
-                  <input
-                    ref={inputRef}
-                    title="name"
-                    type="text"
-                    id="name"
-                    value={userName}
-                    onChange={(e) => setUserName(e.target.value)}
-                    autoFocus
-                    placeholder="set username..."
-                    className={`w-full rounded-lg p-2 border-2 border-primary-color input-focus text-center ${
-                      error ? "" : "mb-5"
-                    }`}
-                    name="name"
-                  />
-                  {error && (
-                    <div className="text-red-500 p-1 m-1 text-center">
-                      {error}
-                    </div>
-                  )}
-                </div>
-                <ButtonAction>Update Username</ButtonAction>
-              </form>
-            </div>
-            <div className="flex flex-row w-full justify-center">
-              <p className="text-white">
-                signed in as : {session?.user?.username}
-              </p>
-            </div>
-          </section>
-
-          <div className="w-full flex justify-center lg:w-auto">
-            <section
-              id="image-place"
-              className="relative rounded-lg max-w-[320px] max-h-[280px] lg:min-w-[600px] lg:min-h-[450px] lg:max-w-[600px] lg:max-h-[450px] w-full h-auto"
-            >
-              <Image
-                src={golden_frame}
-                alt="golden-frame"
-                className="w-full h-full rounded-lg"
-              />
-              <Image
-                src={pencil}
-                alt="this is the main image"
-                className="absolute inset-0 m-auto w-[90%] h-[90%] object-cover rounded-lg"
-              />
-            </section>
-          </div>
-        </main>
-      </>
-    );
   }
 
   return (
     <>
-      <main
-        className="flex flex-col lg:flex-row mx-7 lg:min-h-[80vh] lg:space-x-8 space-y-8 lg:space-y-0 justify-center lg:justify-start mt-[25px] "
-        id="home-page"
-      >
-        <section
-          id="text-and-button-place"
-          className="relative flex-2 flex flex-col items-center lg:items-start text-center lg:text-left"
-        >
-          <div className="text-base text-center sm:text-2xl mb-[25px] min-[1700px]:pl-12 text-white">
-            Welcome to your personal blog space! Log in now to unlock posts and
-            start sharing your thoughts.
-          </div>
-
-          <aside className="flex justify-center items-center w-full">
-            <ButtonAction onClick={() => signIn("google")}>
-              Sign Up with Google
-            </ButtonAction>
-          </aside>
-        </section>
-
-        <div className="w-full flex justify-center lg:w-auto">
-          <section
-            id="image-place"
-            className="relative rounded-lg max-w-[320px] max-h-[280px] lg:min-w-[600px] lg:min-h-[450px] lg:max-w-[600px] lg:max-h-[450px] w-full h-auto"
-          >
-            <Image
-              src={golden_frame}
-              alt="golden-frame"
-              className="w-full h-full rounded-lg"
+      <main className="flex flex-col lg:flex-row mx-7 lg:min-h-[100vh] lg:space-x-8 space-y-8 lg:space-y-0 justify-center lg:justify-start mt-[25px]">
+        <div className="relative min-h-[450px] w-full lg:w-[350px] flex-shrink-0">
+          {authenticated && session?.user?.email ? (
+            <HomeSignOut
+              sessionUsername={session?.user?.username}
+              handleUpdateUserName={handleUpdateUserName}
+              ref={inputRef}
+              queryError={queryError}
             />
-            <Image
-              src={pencil}
-              alt="this is the main image"
-              className="absolute inset-0 m-auto w-[90%] h-[90%] object-cover rounded-lg"
-            />
-          </section>
+          ) : (
+            <HomeSignIn />
+          )}
+        </div>
+
+        <div className="flex-grow">
+          <HomeMainLayer />
         </div>
       </main>
     </>

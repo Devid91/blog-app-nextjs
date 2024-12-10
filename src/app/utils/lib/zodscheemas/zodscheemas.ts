@@ -11,4 +11,8 @@ export const usernameSchema = z.object({
     }), // Ensure no consecutive spaces are allowed
 });
 
-export type Username = z.infer<typeof usernameSchema>;
+export const emailSchema = z.object({
+  email: z.string().email().max(30, "max length must be 30"), // Ensures the email is valid
+});
+
+export type Username = z.infer<typeof usernameSchema | typeof emailSchema>;
